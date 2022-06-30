@@ -1,4 +1,4 @@
-#Arabic PDF Ocr
+# Arabic PDF Ocr
 
 This is an arabic pdf ocr
 it first extract pdf to images
