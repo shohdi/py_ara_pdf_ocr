@@ -1,0 +1,27 @@
+brew install Tesseract
+brew install tesseract-lang
+conda create -n tesseract python=3.7
+conda activate tesseract
+conda install -c conda-forge pytesseract
+conda install -c conda-forge pdf2image
+#if you didn't install apple command line tools before :
+xcode-select --install
+# ^ sometimes not work due to internet issues
+#go here https://developer.apple.com/download/all/?q=command
+#check your xcode version from xcode start page under welcome to xcode
+#mine is 13.4
+#download the image for your version (mine 13.4)
+#install it
+#try again the next command
+brew install xpdf
+conda install -c conda-forge poppler
+
+cp /opt/homebrew/bin/pdf* <user_home>/opt/anaconda3/envs/tesseract/bin/
+#in home opt (<user_home>/opt/)
+sudo chown -R <user_name> .
+chmod -R 777 .
+#to test
+#pdftoppm ./utobia_full_page.pdf ./utobia_full_page.pdf_ext/
+
+#for spell checking
+pip install cyhunspell
