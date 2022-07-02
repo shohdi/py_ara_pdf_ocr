@@ -1,6 +1,7 @@
 import cmd
 from concurrent.futures import thread
 from email.mime import image
+from glob import glob
 from importlib.resources import path
 from logging import root
 from re import T
@@ -16,6 +17,7 @@ import shutil
 import re
 import argparse
 from threading import Thread
+import time
 
 
 from hunspell import Hunspell
@@ -24,11 +26,20 @@ import tkinter as tk
 
 
 def pdf_to_txt(pdf_file,allowSpell,rootWindow):
+    global wordReplaced
+    global txtInput
+    global currentExtracted
+    global lblBefore
+    global lblWord
+    global lblAfter
+    global lblSuggest
+    global currentWord
     spellChecker = None
     pathDir,pathName = os.path.split(pdf_file)
     pathName = pathName + "_ext"
     extFullPath = pathDir + os.path.sep + pathName
-    tk.Label(rootWindow,font=("Ariel",22),text=extFullPath).pack()
+    lblStatus.config(text=extFullPath)
+    
     print(extFullPath)
  
     if(os.path.exists(extFullPath)):
@@ -42,14 +53,17 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
         btArr = myFile.read()
     images = pdf2image.convert_from_bytes(btArr)#,output_folder=extFullPath)
     '''
-    tk.Label(rootWindow,font=("Ariel",22),text='getting pdf info ').pack()
+    lblStatus.config(text='getting pdf info ')
+    
     print('getting pdf info ')
     infoFile = pdf2image.pdfinfo_from_path(pdf_file)
-    tk.Label(rootWindow,font=("Ariel",22),text=str(infoFile)).pack()
+    lblStatus.config(text=str(infoFile))
+    
     print(infoFile)
     #lastPage = (3 if int(infoFile["Pages"]) > 3 else infoFile["Pages"] )
     #images = pdf2image.convert_from_path(pdf_file,last_page=lastPage)#,output_folder=extFullPath)
-    tk.Label(rootWindow,font=("Ariel",22),text='start converting pdf to images in '+ extFullPath + os.path.sep).pack()
+    lblStatus.config(text='start converting pdf to images in '+ extFullPath + os.path.sep)
+    
     
     print('start converting pdf to images in ',extFullPath + os.path.sep)
     cmdLine = 'pdftoppm '
@@ -74,9 +88,9 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
         if(".ppm" in strImage.lower()):
             #start extract ocr
             
-            strDataLabel = tk.Label(rootWindow,font=("Arial",24))
-            strDataLabel.pack()
-            strDataLabel.config(text='extracting page no ' + str(indx) +' from ' + str(infoFile["Pages"]))
+            
+            
+            lblStatus.config(text='extracting page no ' + str(indx) +' from ' + str(infoFile["Pages"]))
             print('extracting page no ',str(indx),' from ',str(infoFile["Pages"]))
             fName = extFullPath + os.path.sep + strImage
             
@@ -85,20 +99,53 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
             if allowSpell:
                 if spellChecker is None :
                     spellChecker = Hunspell('ar', hunspell_data_dir='.' + os.path.sep+ 'hunspell-ar_3.1' + os.path.sep)
-                strDataLabel.config(text='start spell check : ')
+                lblStatus.config(text='start spell check : ')
                 print ('start spell check : ')
                 words = re.split('[ \n\r\t]+',extracted)
                 words = [re.sub('[^\\u0600-\\u06FF]+','',b) for b in words ]
                 words = [re.sub('[\\u0660-\\u0669]+','',b) for b in words ]
                 words = [b for b in words if re.sub('[ \n\r\t]+','',b) != '']
-                for word in words:
+                for i,word in enumerate(words):
                     
                     #found word
                     tes = spellChecker.spell(word)
                     if not tes:
                         suggessions = spellChecker.suggest(word)
-                        strDataLabel.config(text='found wrong spelling : ' + str(word) + str(suggessions))
+                        strWrongWord = 'found wrong spelling : ' + str(word) + str(suggessions)
+                        lblStatus.config(text=strWrongWord)
                         print ('found wrong spelling : ' , word , suggessions)
+                        strWrongWord = strWrongWord + '\n' + 'من فضلك صحح الكلمة :'
+                        num = i - 4
+                        if(num < 0):
+                            num = 0
+                        
+                        strBefore = ''
+                        while num < i :
+                            strBefore = strBefore  + ' ' + words[num]
+                            num +=1
+                        lblSuggest.config(text='الاحتمالات : ' + str(suggessions))
+                        lblBefore.config(text=strBefore)
+                        lblWord.config(text=word)
+                        num = i + 4
+                        if num > len(words)-1:
+                            num = len(words)-1
+                        strAfter = ''
+                        while num > i :
+                            strAfter = words[num] + ' ' +  strAfter
+                            num -= 1
+                        lblAfter.config(text=strAfter)
+                        currentWord = word
+                        currentExtracted = extracted
+                        wordReplaced = False
+                        while not wordReplaced:
+                            time.sleep(0.1)
+                        
+                        extracted = currentExtracted
+                        words[i] = currentWord
+                        
+
+                        
+
             
                 
             if(re.sub('[ \n\r\t]+','',extracted) != ''):
@@ -134,13 +181,85 @@ rootWindow = None
 allowSpellPrm = None
 filenamePrm = None
 myThread = None
+
+lblStatus = None
+lblSuggest = None
+lblBefore = None
+lblWord = None
+lblAfter = None
+txtInput = None
+btnIgnore = None
+btnCorrect = None
+
+currentExtracted = None
+currentWord = None
+wordReplaced = None
+started = None
+
+
 def button_click():
+    global started
+    global myThread
+    global filenamePrm
+    global allowSpellPrm
+    global rootWindow
+    if  started:
+        return
+    started = True
     myThread = Thread(target=print_pages,args=(filenamePrm,allowSpellPrm,rootWindow))
     myThread.start()
     #print_pages(filenamePrm,allowSpellPrm,rootWindow)
 
-if __name__ == '__main__':
+
+def btnCorrect_click():
+    global wordReplaced
+    global txtInput
+    global currentExtracted
+    global lblBefore
+    global lblWord
+    global lblAfter
+    global lblSuggest
+    global currentWord
     
+    if wordReplaced:
+        return
+    myText= txtInput.get("1.0","end")
+    if(re.sub('[ \n\r\t]+','',myText) != ''):
+        myText = re.sub('[\n\r\t]+','',myText)
+        currentExtracted = currentExtracted.replace(currentWord,myText)
+        currentWord = myText
+        lblBefore.config(text='')
+        lblWord.config(text='')
+        lblStatus.config(text='')
+        lblAfter.config(text='')
+        txtInput.delete("1.0","end")
+        lblSuggest.config(text='')
+        wordReplaced = True
+
+
+def btnIgnore_click():
+    global wordReplaced
+    global txtInput
+    
+    global lblBefore
+    global lblWord
+    global lblAfter
+    global lblSuggest
+    if wordReplaced:
+        return
+    lblBefore.config(text='')
+    lblWord.config(text='')
+    lblAfter.config(text='')
+    txtInput.delete("1.0","end")
+    lblStatus.config(text='')
+    lblSuggest.config(text='')
+    wordReplaced = True
+
+
+
+if __name__ == '__main__':
+    wordReplaced = True
+    started = False
     parser = argparse.ArgumentParser(description='Take filename and is apply hanspell or not.')
     parser.add_argument('--filename',   required = True,
                     help='full path of the pdf file')
@@ -152,13 +271,41 @@ if __name__ == '__main__':
     filenamePrm = args.filename
     allowSpellPrm = args.allowSpell
     rootWindow = tk.Tk()
+    lblStatus = tk.Label(rootWindow,font=("Ariel",16),text='')
+    lblStatus.pack()
+    lblSuggest = tk.Label(rootWindow,font=("Ariel",16),text='')
+    lblSuggest.pack()
+    lblBefore = tk.Label(rootWindow,font=("Ariel",16),text='')
+    lblBefore.pack()
+    lblWord = tk.Label(rootWindow,fg="red",font=("Ariel",16),text='')
+    lblWord.pack()
+    lblAfter = tk.Label(rootWindow,font=("Ariel",16),text='')
+    lblAfter.pack()
+    txtInput = tk.Text(rootWindow,font=("Ariel",16),height=1)
+    txtInput.pack()
+
+    btnCorrect = tk.Button(rootWindow,
+                   text = "صحح",
+                   command = lambda:btnCorrect_click())
+    btnCorrect.pack()
+
+    btnIgnore = tk.Button(rootWindow,
+                   text = "اهمل",
+                   command = lambda:btnIgnore_click())
+    btnIgnore.pack()
 
     tk.Button(rootWindow,
-                   text = "Start",
-                   command = button_click).pack()
+                   text = "ابدأ",
+                   command = lambda:button_click()).pack()
     rootWindow.maxsize(600,800)
     rootWindow.mainloop()
-    myThread.kill()
+    try :
+        myThread.kill()
+    except :
+        None
+
+
+    started = False
 
 
 
