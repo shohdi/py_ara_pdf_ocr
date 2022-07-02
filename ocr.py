@@ -5,6 +5,7 @@ from glob import glob
 from importlib.resources import path
 from logging import root
 from re import T
+from textwrap import wrap
 import pdf2image
 try:
     from PIL import Image
@@ -17,11 +18,28 @@ import shutil
 import re
 import argparse
 from threading import Thread
+import threading
 import time
 
 
 from hunspell import Hunspell
 import tkinter as tk
+
+
+class StoppableThread(threading.Thread):
+    """Thread class with a stop() method. The thread itself has to check
+    regularly for the stopped() condition."""
+
+    def __init__(self,  *args, **kwargs):
+        super(StoppableThread, self).__init__(*args, **kwargs)
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+        
+
+    def stopped(self):
+        return self._stop_event.is_set()
 
 
 
@@ -34,6 +52,7 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
     global lblAfter
     global lblSuggest
     global currentWord
+    global myThread
     spellChecker = None
     pathDir,pathName = os.path.split(pdf_file)
     pathName = pathName + "_ext"
@@ -85,6 +104,8 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
     out_str = '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8" /></head><body>'
 
     for strImage in imageNames:
+        if myThread.stopped():
+            return
         if(".ppm" in strImage.lower()):
             #start extract ocr
             
@@ -111,7 +132,7 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
                     tes = spellChecker.spell(word)
                     if not tes:
                         suggessions = spellChecker.suggest(word)
-                        strWrongWord = 'found wrong spelling : ' + str(word) + str(suggessions)
+                        strWrongWord = 'found wrong spelling : ' + str(word)
                         lblStatus.config(text=strWrongWord)
                         print ('found wrong spelling : ' , word , suggessions)
                         strWrongWord = strWrongWord + '\n' + 'من فضلك صحح الكلمة :'
@@ -137,8 +158,10 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
                         currentWord = word
                         currentExtracted = extracted
                         wordReplaced = False
-                        while not wordReplaced:
+                        while not wordReplaced and not myThread.stopped():
                             time.sleep(0.1)
+                        
+                        
                         
                         extracted = currentExtracted
                         words[i] = currentWord
@@ -163,6 +186,7 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
         outFile.write(out_str)
     if(os.path.exists(extFullPath)):
         shutil.rmtree(extFullPath)
+    rootWindow.quit()
     return
 
 
@@ -206,7 +230,7 @@ def button_click():
     if  started:
         return
     started = True
-    myThread = Thread(target=print_pages,args=(filenamePrm,allowSpellPrm,rootWindow))
+    myThread = StoppableThread(target=print_pages,args=(filenamePrm,allowSpellPrm,rootWindow))
     myThread.start()
     #print_pages(filenamePrm,allowSpellPrm,rootWindow)
 
@@ -258,6 +282,8 @@ def btnIgnore_click():
 
 
 if __name__ == '__main__':
+    
+
     wordReplaced = True
     started = False
     parser = argparse.ArgumentParser(description='Take filename and is apply hanspell or not.')
@@ -271,10 +297,10 @@ if __name__ == '__main__':
     filenamePrm = args.filename
     allowSpellPrm = args.allowSpell
     rootWindow = tk.Tk()
-    lblStatus = tk.Label(rootWindow,font=("Ariel",16),text='')
-    lblStatus.pack()
-    lblSuggest = tk.Label(rootWindow,font=("Ariel",16),text='')
-    lblSuggest.pack()
+    lblStatus = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
+    lblStatus.pack(anchor='w')
+    lblSuggest = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
+    lblSuggest.pack(anchor='e')
     lblBefore = tk.Label(rootWindow,font=("Ariel",16),text='')
     lblBefore.pack()
     lblWord = tk.Label(rootWindow,fg="red",font=("Ariel",16),text='')
@@ -300,11 +326,11 @@ if __name__ == '__main__':
     rootWindow.maxsize(600,800)
     rootWindow.mainloop()
     try :
-        myThread.kill()
+        myThread.stop()
     except :
         None
 
-
+    
     started = False
 
 
