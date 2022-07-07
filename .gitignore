@@ -127,4 +127,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-hunspell-ar_3.1
+#hunspell-ar_3.1
