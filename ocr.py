@@ -57,6 +57,7 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
     global currentWord
     global myThread
     global spellChecker
+    global lblPageNo
     
     pathDir,pathName = os.path.split(pdf_file)
     pathName = pathName + "_ext"
@@ -114,8 +115,8 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
             #start extract ocr
             
             
+            lblPageNo.config(text='extracting page no ' + str(indx) +' from ' + str(infoFile["Pages"]))
             
-            lblStatus.config(text='extracting page no ' + str(indx) +' from ' + str(infoFile["Pages"]))
             print('extracting page no ',str(indx),' from ',str(infoFile["Pages"]))
             fName = extFullPath + os.path.sep + strImage
             
@@ -227,6 +228,7 @@ btnUpload = None
 lblFileName = None
 chkDoSpellCheck = None
 chkDoSpellCheckVal = None
+lblPageNo = None
 
 
 def button_click():
@@ -351,6 +353,8 @@ if __name__ == '__main__':
     
     chkDoSpellCheck =  tk.Checkbutton(rootWindow, text='اصلح الاخطاء',variable=chkDoSpellCheckVal, onvalue=True, offvalue=False, command=lambda:chkDoSpellCheck_click())
     chkDoSpellCheck.pack()
+    lblPageNo = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
+    lblPageNo.pack()
     lblStatus = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
     lblStatus.pack(anchor='w')
     lblSuggest = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
