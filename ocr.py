@@ -1,3 +1,4 @@
+
 import cmd
 from concurrent.futures import thread
 from email.mime import image
@@ -6,6 +7,7 @@ from importlib.resources import path
 from logging import root
 from re import T
 from textwrap import wrap
+
 import pdf2image
 try:
     from PIL import Image
@@ -24,6 +26,7 @@ import time
 
 from hunspell import Hunspell
 import tkinter as tk
+from tkinter import filedialog
 
 
 class StoppableThread(threading.Thread):
@@ -219,6 +222,10 @@ currentExtracted = None
 currentWord = None
 wordReplaced = None
 started = None
+btnUpload = None
+lblFileName = None
+chkDoSpellCheck = None
+chkDoSpellCheckVal = None
 
 
 def button_click():
@@ -227,7 +234,9 @@ def button_click():
     global filenamePrm
     global allowSpellPrm
     global rootWindow
-    if  started:
+    global filenamePrm
+
+    if  started or filenamePrm is None or filenamePrm == '':
         return
     started = True
     myThread = StoppableThread(target=print_pages,args=(filenamePrm,allowSpellPrm,rootWindow))
@@ -278,7 +287,24 @@ def btnIgnore_click():
     lblStatus.config(text='')
     lblSuggest.config(text='')
     wordReplaced = True
+    
 
+def btnUpload_click():
+    global filenamePrm
+    global lblFileName
+    if started:
+        return
+    filenamePrm = filedialog.askopenfilename()
+    lblFileName.config(text=filenamePrm)
+
+def chkDoSpellCheck_click():
+    global allowSpellPrm
+    global chkDoSpellCheckVal
+    
+    if started:
+        return
+    allowSpellPrm = chkDoSpellCheckVal.get()
+    
 
 
 if __name__ == '__main__':
@@ -287,7 +313,7 @@ if __name__ == '__main__':
     wordReplaced = True
     started = False
     parser = argparse.ArgumentParser(description='Take filename and is apply hanspell or not.')
-    parser.add_argument('--filename',   required = True,
+    parser.add_argument('--filename',   default = '',
                     help='full path of the pdf file')
     parser.add_argument('--allowSpell',default=False,type=bool,
                     required=False,
@@ -297,6 +323,16 @@ if __name__ == '__main__':
     filenamePrm = args.filename
     allowSpellPrm = args.allowSpell
     rootWindow = tk.Tk()
+    btnUpload = tk.Button(rootWindow,
+                   text = "اختر الملف",
+                   command = lambda:btnUpload_click())
+    btnUpload.pack()
+    lblFileName = tk.Label(rootWindow,font=("Ariel",16),text=filenamePrm,wraplength=600)
+    lblFileName.pack()
+    chkDoSpellCheckVal = tk.BooleanVar(value=allowSpellPrm)
+    
+    chkDoSpellCheck =  tk.Checkbutton(rootWindow, text='اصلح الاخطاء',variable=chkDoSpellCheckVal, onvalue=True, offvalue=False, command=lambda:chkDoSpellCheck_click())
+    chkDoSpellCheck.pack()
     lblStatus = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
     lblStatus.pack(anchor='w')
     lblSuggest = tk.Label(rootWindow,font=("Ariel",16),text='',wraplength=600)
@@ -309,6 +345,7 @@ if __name__ == '__main__':
     lblAfter.pack()
     txtInput = tk.Text(rootWindow,font=("Ariel",16),height=1)
     txtInput.pack()
+
 
     btnCorrect = tk.Button(rootWindow,
                    text = "صحح",
