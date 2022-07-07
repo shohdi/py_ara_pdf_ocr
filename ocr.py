@@ -45,7 +45,7 @@ class StoppableThread(threading.Thread):
         return self._stop_event.is_set()
 
 
-
+spellChecker = None
 def pdf_to_txt(pdf_file,allowSpell,rootWindow):
     global wordReplaced
     global txtInput
@@ -56,7 +56,8 @@ def pdf_to_txt(pdf_file,allowSpell,rootWindow):
     global lblSuggest
     global currentWord
     global myThread
-    spellChecker = None
+    global spellChecker
+    
     pathDir,pathName = os.path.split(pdf_file)
     pathName = pathName + "_ext"
     extFullPath = pathDir + os.path.sep + pathName
@@ -254,6 +255,7 @@ def btnCorrect_click():
     global lblSuggest
     global currentWord
     
+    
     if wordReplaced:
         return
     myText= txtInput.get("1.0","end")
@@ -268,6 +270,19 @@ def btnCorrect_click():
         txtInput.delete("1.0","end")
         lblSuggest.config(text='')
         wordReplaced = True
+        
+        
+    else:
+        currentExtracted = currentExtracted.replace(currentWord,'')
+        currentWord = ''
+        lblBefore.config(text='')
+        lblWord.config(text='')
+        lblStatus.config(text='')
+        lblAfter.config(text='')
+        txtInput.delete("1.0","end")
+        lblSuggest.config(text='')
+        wordReplaced = True
+
 
 
 def btnIgnore_click():
@@ -278,6 +293,8 @@ def btnIgnore_click():
     global lblWord
     global lblAfter
     global lblSuggest
+    global currentWord
+    global spellChecker
     if wordReplaced:
         return
     lblBefore.config(text='')
@@ -287,6 +304,7 @@ def btnIgnore_click():
     lblStatus.config(text='')
     lblSuggest.config(text='')
     wordReplaced = True
+    spellChecker.add(currentWord)
     
 
 def btnUpload_click():
