@@ -1,10 +1,3 @@
-brew install Tesseract
-brew install tesseract-lang
-conda create -n tesseract python=3.7
-conda activate tesseract
-conda install -c conda-forge pytesseract
-conda install -c conda-forge pdf2image
-#if you didn't install apple command line tools before :
 xcode-select --install
 # ^ sometimes not work due to internet issues
 #go here https://developer.apple.com/download/all/?q=command
@@ -12,6 +5,16 @@ xcode-select --install
 #mine is 13.4
 #download the image for your version (mine 13.4)
 #install it
+brew install gcc 
+brew install automake autoconf libtool
+brew install hunspell
+brew install Tesseract
+brew install tesseract-lang
+conda create -n tesseract python=3.7
+conda activate tesseract
+conda install -c conda-forge pytesseract
+conda install -c conda-forge pdf2image
+#if you didn't install apple command line tools before :
 #try again the next command
 brew install xpdf
 conda install -c conda-forge poppler
@@ -27,3 +30,11 @@ chmod -R 777 .
 brew install hunspell
 cp ./hunspell-ar_3.1/ar.* /Users/<user_home>/Library/Spelling/
 pip install cyhunspell
+#if the previous didn't work
+#git clone https://github.com/MSeal/cython_hunspell.git
+#cd cython_hunspell
+#python setup.py install
+
+pip install pdf2image
+pip install pytesseract
+pip install cacheman
